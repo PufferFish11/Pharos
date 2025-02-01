@@ -3,6 +3,8 @@ import wave
 import openai
 import os
 from dotenv import load_dotenv
+
+
 def aud():
     load_dotenv()
     # Set your OpenAI API key
@@ -69,4 +71,6 @@ def aud():
     finally:
         # Clean up: Delete the recorded file (optional)
         os.remove(OUTPUT_FILENAME)
-aud()
+
+if __name__ == "__main__":
+    aud()

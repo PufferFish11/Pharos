@@ -1,76 +1,72 @@
-from openai import OpenAI
-import os
 import speech_recognition as sr
-from playsound import playsound
-from dotenv import load_dotenv
-import pyaudio
-# Define available audio modes
+import pyttsx3
+
+# Initialize offline TTS engine
+tts_engine = pyttsx3.init()
+
+# Enhanced dictionary mapping numbers and words to mode messages
 AUDIO_MODES = {
-    "mode 1": "Music mode selected. Enjoy high-quality sound.",
-    "mode 2": "Podcast mode selected. Enhancing speech clarity.",
-    "mode 3": "Movie mode selected. Optimizing for cinematic experience.",
-    "mode 4": "Gaming mode selected. Low latency for real-time sound."
+    "one": "Music mode selected. Enjoy high-quality sound.",
+    "two": "Podcast mode selected. Enhancing speech clarity.",
+    "three": "Movie mode selected. Optimizing for cinematic experience.",
+    "four": "Gaming mode selected. Low latency for real-time sound.",
 }
 
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+def text_to_speech(text):
+    """ Speak the given text using pyttsx3 (Offline TTS). """
+    tts_engine.say(text)
+    tts_engine.runAndWait()
 
-# Function to generate speech output and play it
-def text_to_speech(text, output_audio="output.mp3"):
-    response = client.audio.speech.create(model="tts-1",
-    input=text,
-    voice="alloy")
-
-    with open(output_audio, "wb") as audio_file:
-        audio_file.write(response.content)
-
-    playsound(output_audio)
-
-# Function to record voice input
 def record_voice():
+    """ Records voice and converts it to text. """
     recognizer = sr.Recognizer()
     mic = sr.Microphone()
-
-    print("🎤 Speak now...")
     with mic as source:
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
+        try:
+            print("🎤 Speak now...")
+            audio = recognizer.listen(source)  # Allow longer input
+        except sr.WaitTimeoutError:
+            print("⏳ No speech detected. Please try again.")
+            return None
 
     print("⏳ Processing voice input...")
     try:
-        # Convert speech to text using SpeechRecognition
-        text = recognizer.recognize_google(audio).lower()
+        text = recognizer.recognize_google(audio, language="en-US").lower()
         print(f"🗣️ You said: {text}")
         return text
     except sr.UnknownValueError:
-        print("❌ Could not understand the audio.")
+        print("❌ Could not understand the audio. Try speaking clearly.")
         return None
-    except sr.RequestError:
-        print("❌ Could not request results.")
-        return None
+    except sr.RequestError as e:
+        print(f"❌ Could not connect to Google's recognition service: {str(e)}. Trying offline mode...")
 
-# Function to list available modes using TTS
 def list_audio_modes():
-    mode_list = "Available audio modes are: " + ", ".join(AUDIO_MODES.keys()) + ". Please say the mode you want."
+    """ List available modes using TTS. """
+    mode_list = "Available audio modes: One, Two, Three, Four. Please say a number or word."
     text_to_speech(mode_list)
 
-# Function to confirm the user's choice
 def confirm_choice(choice):
-    text_to_speech(f"You selected {choice}. Is that correct? Please say Yes or No.")
+    """ Asks the user to confirm their selection. """
+    text_to_speech(f"You selected Mode {choice}. Is that correct? Please say Yes or No.")
+    
     while True:
         confirmation = record_voice()
-        if confirmation:
-            if "yes" in confirmation:
-                text_to_speech(f"Confirmed. {AUDIO_MODES[choice]}")
-                return True
-            elif "no" in confirmation:
-                text_to_speech("Okay, please choose again.")
-                return False
-            else:
-                text_to_speech("I didn't understand. Please say Yes or No.")
+        if confirmation and any(word in confirmation for word in ["yes", "yeah", "yep"]):
+            text_to_speech(f"Confirmed. {AUDIO_MODES[choice]}")
+            return True
+        elif confirmation and any(word in confirmation for word in ["no", "nope", "nah"]):
+            text_to_speech("Okay, please choose again.")
+            return False
+        else:
+            text_to_speech("I didn't understand. Please say Yes or No.")
 
-# Main function to handle voice-based selection
+def contains_valid_mode(transcription):
+    """ Checks if the transcribed text contains 'one', 'two', or 'three'. """
+    valid_keywords = ["one", "two", "three", "four"]
+    return any(word in transcription for word in valid_keywords)
+
 def select_audio_mode():
+    """ Handles the process of selecting an audio mode via voice input. """
     while True:
         list_audio_modes()
         mode_selected = record_voice()
@@ -79,12 +75,14 @@ def select_audio_mode():
             text_to_speech("I couldn't hear you. Please try again.")
             continue
 
-        for mode in AUDIO_MODES.keys():
-            if mode in mode_selected:
-                if confirm_choice(mode):
-                    return mode  # Final selection
-                else:
-                    break  # Loop again for a new choice
+        if contains_valid_mode(mode_selected):  # Check if transcription contains valid mode
+            for key in AUDIO_MODES:
+                if key in mode_selected:
+                    if confirm_choice(key):
+                        return key
+        else:
+            text_to_speech("Invalid selection. Please say a number between one and four.")
+            continue
 
 # Run the voice-based UI
 if __name__ == "__main__":

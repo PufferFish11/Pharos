@@ -135,4 +135,5 @@ def assist_blind_person():
     play_audio(audio_file)
 
 # Run the assistant
-assist_blind_person()
+if __name__ == "__main__":
+    assist_blind_person()
