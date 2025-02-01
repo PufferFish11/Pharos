@@ -6,10 +6,10 @@ tts_engine = pyttsx3.init()
 
 # Enhanced dictionary mapping numbers and words to mode messages
 AUDIO_MODES = {
-    "one": "Music mode selected. Enjoy high-quality sound.",
-    "two": "Podcast mode selected. Enhancing speech clarity.",
-    "three": "Movie mode selected. Optimizing for cinematic experience.",
-    "four": "Gaming mode selected. Low latency for real-time sound.",
+    "detection": "Obstcal detection mode selected.",
+    "jarvis": "Podcast mode selected.",
+    "buyer": "Movie mode selected.",
+    "music": "Music mode selected.",
 }
 
 def text_to_speech(text):
@@ -37,12 +37,11 @@ def record_voice():
     except sr.UnknownValueError:
         print("❌ Could not understand the audio. Try speaking clearly.")
         return None
-    except sr.RequestError as e:
-        print(f"❌ Could not connect to Google's recognition service: {str(e)}. Trying offline mode...")
+  
 
 def list_audio_modes():
     """ List available modes using TTS. """
-    mode_list = "Available audio modes: One, Two, Three, Four. Please say a number or word."
+    mode_list = "Available audio modes: music, jarvis, detection, Buyer. Please say a number or word."
     text_to_speech(mode_list)
 
 def confirm_choice(choice):
@@ -62,7 +61,7 @@ def confirm_choice(choice):
 
 def contains_valid_mode(transcription):
     """ Checks if the transcribed text contains 'one', 'two', or 'three'. """
-    valid_keywords = ["one", "two", "three", "four"]
+    valid_keywords = list(AUDIO_MODES.keys())
     return any(word in transcription for word in valid_keywords)
 
 def select_audio_mode():
@@ -81,7 +80,7 @@ def select_audio_mode():
                     if confirm_choice(key):
                         return key
         else:
-            text_to_speech("Invalid selection. Please say a number between one and four.")
+            text_to_speech("Invalid selection. Please try again.")
             continue
 
 # Run the voice-based UI
