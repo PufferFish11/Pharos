@@ -50,23 +50,6 @@ def list_audio_modes():
 
 
 
-def confirm_choice(choice):
-    """ Asks the user to confirm their selection. """
-    text_to_speech(f"You selected Mode {choice}. Is that correct?")
-    
-    while True:
-        confirmation = record_voice()
-        if confirmation and any(word in confirmation for word in ["yes", "yeah", "yep"]):
-            text_to_speech(f"Confirmed. {AUDIO_MODES[choice]}")
-            return True
-        elif confirmation and any(word in confirmation for word in ["no", "nope", "nah"]):
-            text_to_speech("Okay, please choose again.")
-            return False
-        else:
-            text_to_speech("I didn't understand. Please say Yes or No.")
-
-
-
 def contains_valid_mode(transcription):
     """ Checks if the transcribed text contains 'one', 'two', or 'three'. """
     valid_keywords = list(AUDIO_MODES.keys())
@@ -87,10 +70,9 @@ def select_audio_mode():
         if contains_valid_mode(mode_selected):  # Check if transcription contains valid mode
             for key in AUDIO_MODES:
                 if key in mode_selected:
-                    #if confirm_choice(key):
-                     return key
+                    return key
         elif mode_selected in ('quit', 'exit', 'bye'):
-            break         
+            return 1         
         else:
             text_to_speech("Invalid selection. Please try again.")
             continue

@@ -10,7 +10,6 @@ import io
 from mode import text_to_speech
 
 
-
 def recognize_speech_from_mic():
     recognizer = sr.Recognizer()
     with sr.Microphone() as source:
@@ -32,18 +31,32 @@ def recognize_speech_from_mic():
 
 
 def get_openai_response(prompt, client, encoded_image=None):
-    messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+    # Pre-input prompt to define the model's responsibility
+    pre_input_prompt = (
+        "You are jarvis, a blind assistant. Your responsibility is to help visually impaired users with concise, clear answers. And don't forget take care of their feeling and emotion. "
+        "suitable for text-to-speech playback."
+    )
+    
+    messages = [
+        {"role": "system", "content": pre_input_prompt},
+        {"role": "user", "content": [{"type": "text", "text": prompt}]}
+    ]
 
     if encoded_image:
-        messages[0]["content"].append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"}})
+        messages[1]["content"].append({
+            "type": "image_url", 
+            "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"}
+        })
 
     try:
-        response = client.chat.completions.create(model="gpt-4o-mini",  # Or another suitable model
-        messages=messages,
-        max_tokens=50) # Reduced max_tokens for shorter responses)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",  # Or another suitable model
+            messages=messages,
+            max_tokens=50  # Reduced max_tokens for shorter responses
+        )
         # Extract and strip whitespace, limit to one line
         response_text = response.choices[0].message.content.strip()
-        return response_text.splitlines()[0] if response_text else "" # Get the first line only
+        return response_text.splitlines()[0] if response_text else ""
     except openai.OpenAIError as e:
         print(f"OpenAI API Error: {e}")
         return "Error communicating with OpenAI API."
@@ -59,8 +72,8 @@ def encode_image(image_path):
 
         # Use BytesIO to store the resized image in memory
         buffered = io.BytesIO()
-        img.save(buffered, format="JPEG", quality=80) # Save resized image to memory
-        img_str = base64.b64encode(buffered.getvalue()).decode() # Encode from memory
+        img.save(buffered, format="JPEG", quality=80)  # Save resized image to memory
+        img_str = base64.b64encode(buffered.getvalue()).decode()  # Encode from memory
 
         return img_str
     except Exception as e:
@@ -105,10 +118,8 @@ def jarvis_mode():
                 text_to_speech(response)
             else:
                 print("No input provided (speech).")
-        elif user_input is None: # Handle the case where speech recognition fails
+        elif user_input is None:  # Handle the case where speech recognition fails
             print("Could not understand audio. Please try again.")
-            continue # Go to the next iteration of the loop
+            continue  # Go to the next iteration of the loop
         else:
-          print("No Input Provided")
-
-
+            print("No Input Provided")

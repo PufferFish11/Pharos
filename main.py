@@ -46,9 +46,10 @@ def main_loop():
     text_to_speech("I am a dedicated assistant for visually impaired users.")
     while True:
         selected_mode = select_audio_mode()  # Function to get user input
-
+        if selected_mode == 1:
+            break
         run_mode(selected_mode)  # Wait for mode or exit command
-
+ 
         print("Returning to mode selection...")
 
 
