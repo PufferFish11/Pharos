@@ -7,7 +7,7 @@ import pyttsx3
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def buyer_mode():
+def purchase_mode():
     def get_essential_info(image_path, rate=120):
         """Gets essential info (name, price, availability) in a few words."""
 

@@ -9,7 +9,7 @@ tts_engine = pyttsx3.init()
 AUDIO_MODES = {
     "detection": "Obstcal detection mode selected.",
     "jarvis": "Podcast mode selected.",
-    "buyer": "Movie mode selected.",
+    "purchase": "Movie mode selected.",
     "music": "Music mode selected.",
 }
 
@@ -45,7 +45,7 @@ def record_voice():
 
 def list_audio_modes():
     """ List available modes using TTS. """
-    mode_list = "Available audio modes: music, jarvis, detection, Buyer."
+    mode_list = "Available audio modes: music, jarvis, detection, purchase."
     text_to_speech(mode_list)
 
 
@@ -87,8 +87,8 @@ def select_audio_mode():
         if contains_valid_mode(mode_selected):  # Check if transcription contains valid mode
             for key in AUDIO_MODES:
                 if key in mode_selected:
-                    if confirm_choice(key):
-                        return key
+                    #if confirm_choice(key):
+                     return key
                     
         else:
             text_to_speech("Invalid selection. Please try again.")
