@@ -89,7 +89,8 @@ def select_audio_mode():
                 if key in mode_selected:
                     #if confirm_choice(key):
                      return key
-                    
+        elif mode_selected in ('quit', 'exit', 'bye'):
+            break         
         else:
             text_to_speech("Invalid selection. Please try again.")
             continue
