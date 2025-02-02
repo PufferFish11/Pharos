@@ -1,4 +1,5 @@
 import openai
+from openai import OpenAI
 import base64
 import os
 from dotenv import load_dotenv
@@ -6,8 +7,9 @@ import pyttsx3
 import speech_recognition as sr
 from PIL import Image
 import io
+from mode import text_to_speech
 
-print("\n\nI am a dedicated assistant for visually impaired users.")
+
 
 def recognize_speech_from_mic():
     recognizer = sr.Recognizer()
@@ -29,23 +31,20 @@ def recognize_speech_from_mic():
         return None
 
 
-def get_openai_response(prompt, api_key, encoded_image=None):
-    openai.api_key = api_key
+def get_openai_response(prompt, client, encoded_image=None):
     messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
 
     if encoded_image:
         messages[0]["content"].append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"}})
 
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4o-mini",  # Or another suitable model
-            messages=messages,
-            max_tokens=50  # Reduced max_tokens for shorter responses
-        )
+        response = client.chat.completions.create(model="gpt-4o-mini",  # Or another suitable model
+        messages=messages,
+        max_tokens=50) # Reduced max_tokens for shorter responses)
         # Extract and strip whitespace, limit to one line
-        response_text = response["choices"][0]["message"]["content"].strip()
+        response_text = response.choices[0].message.content.strip()
         return response_text.splitlines()[0] if response_text else "" # Get the first line only
-    except openai.error.OpenAIError as e:
+    except openai.OpenAIError as e:
         print(f"OpenAI API Error: {e}")
         return "Error communicating with OpenAI API."
     except Exception as e:
@@ -67,7 +66,7 @@ def encode_image(image_path):
     except Exception as e:
         print(f"Error encoding image: {e}")
         return None
-    
+
 
 def text_to_speech(text):
     engine = pyttsx3.init()
@@ -75,18 +74,11 @@ def text_to_speech(text):
     engine.runAndWait()
 
 
-def main():
+def jarvis_mode():
     load_dotenv()
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    openai.api_key = os.getenv("OPENAI_API_KEY")
-
-    if not openai.api_key:
-        print("Error: OPENAI_API_KEY environment variable not set.")
-        return
-
-    api_key = openai.api_key
-
-    image_path = "/Users/saifshaikh/Desktop/MAIS Code/Pharos/reff.jpg".strip()
+    image_path = "captured.png".strip()
     encoded_image = None
 
     if image_path:
@@ -108,7 +100,7 @@ def main():
             prompt = user_input.strip()
 
             if prompt:
-                response = get_openai_response(prompt, api_key, encoded_image)
+                response = get_openai_response(prompt, client, encoded_image)
                 print("VisHelp response:", response)
                 text_to_speech(response)
             else:
@@ -120,5 +112,3 @@ def main():
           print("No Input Provided")
 
 
-if __name__ == "__main__":
-    main()

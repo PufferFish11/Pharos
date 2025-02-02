@@ -1,7 +1,7 @@
 from video import detection_mode
 from Spoti import music_mode, pause
 from image import purchase_mode
-#from import jarvis_mode
+from imgdtctr import jarvis_mode
 from mode import select_audio_mode,text_to_speech,record_voice
 import speech_recognition as sr
 import keyboard
@@ -26,6 +26,8 @@ def run_mode(mode_name):
         detection_mode()
     elif "purchase" in mode_name.lower():
         purchase_mode()
+    elif "jarvis" in mode_name.lower():
+        jarvis_mode()
     elif "music" in mode_name.lower():
         text_to_speech("Please select your music by name.")
         while True:
@@ -41,6 +43,7 @@ def run_mode(mode_name):
 
 
 def main_loop():
+    text_to_speech("I am a dedicated assistant for visually impaired users.")
     while True:
         selected_mode = select_audio_mode()  # Function to get user input
 
