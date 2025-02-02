@@ -2,6 +2,7 @@ import os
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
+from mode import record_voice, text_to_speech
 
 # Load environment variables from .env file
 load_dotenv()
@@ -10,8 +11,6 @@ load_dotenv()
 CLIENT_ID = os.getenv("SPOTIPY_CLIENT_ID")
 CLIENT_SECRET = os.getenv("SPOTIPY_CLIENT_SECRET")
 REDIRECT_URI = os.getenv("SPOTIPY_REDIRECT_URI")
-
-print(CLIENT_SECRET)
 
 SCOPE = "user-modify-playback-state user-read-playback-state user-read-currently-playing"
 
@@ -22,7 +21,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(client_id=CLIENT_ID,
                                                scope=SCOPE))
 
 # Search for a song and play it
-def play_song_by_name(song_name):
+def music_mode(song_name):
     results = sp.search(q=song_name, type="track", limit=1)
     if results["tracks"]["items"]:
         song_uri = results["tracks"]["items"][0]["uri"]
@@ -41,7 +40,3 @@ def pause():
 def resume():
     sp.start_playback()
 
-# Example usage
-if __name__ == "__main__":
-    song_name = input("Enter a song name: ")  # User provides a song name
-    play_song_by_name(song_name)  # Search and play the song

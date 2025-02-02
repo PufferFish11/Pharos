@@ -83,83 +83,83 @@ def play_audio_warning(message):
     threading.Thread(target=_play_audio, daemon=True).start()
 
 
-# Open the video stream from the camera.
-cap = cv2.VideoCapture(0)
-if not cap.isOpened():
-    print("Error: Could not open camera.")
-    exit()
+def detection_mode():
+    # Open the video stream from the camera.
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Error: Could not open camera.")
+        exit()
 
-# Set to track objects that have already triggered a warning
-warned_objects = set()
+    # Set to track objects that have already triggered a warning
+    warned_objects = set()
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
+        # Perform object detection using YOLO.
+        results = model(frame)
+        detections = results.xyxy[0].cpu().numpy()  # Each row: [x1, y1, x2, y2, conf, cls]
 
-    # Perform object detection using YOLO.
-    results = model(frame)
-    detections = results.xyxy[0].cpu().numpy()  # Each row: [x1, y1, x2, y2, conf, cls]
+        # Reset the warned_objects set for each frame
+        current_frame_objects = set()
 
-    # Reset the warned_objects set for each frame
-    current_frame_objects = set()
+        for det in detections:
+            x1, y1, x2, y2, conf, cls = det
+            label = model.names[int(cls)]
+            if label in real_widths:
+                distance = calculate_distance(
+                    (x1, y1, x2, y2), label, focal_length, real_widths
+                )
 
-    for det in detections:
-        x1, y1, x2, y2, conf, cls = det
-        label = model.names[int(cls)]
-        if label in real_widths:
-            distance = calculate_distance(
-                (x1, y1, x2, y2), label, focal_length, real_widths
-            )
+                # If the object is within 1 meter, provide a warning
+                if distance < 1.0:
+                    current_frame_objects.add(
+                        label
+                    )  # Track the object in the current frame
+                    if label not in warned_objects:
+                        warning_message = f"Warning: {label} detected!"
+                        print(warning_message)
+                        play_audio_warning(
+                            warning_message
+                        )  # Play audio in a separate thread
+                        warned_objects.add(label)  # Mark the object as warned
 
-            # If the object is within 1 meter, provide a warning
-            if distance < 1.0:
-                current_frame_objects.add(
-                    label
-                )  # Track the object in the current frame
-                if label not in warned_objects:
-                    warning_message = f"Warning: {label} detected!"
-                    print(warning_message)
-                    play_audio_warning(
-                        warning_message
-                    )  # Play audio in a separate thread
-                    warned_objects.add(label)  # Mark the object as warned
+                    # Draw the bounding box in RED for objects within 1 meter
+                    color = (0, 0, 255)  # Red in BGR format
+                else:
+                    # Draw the bounding box in GREEN for objects outside 1 meter
+                    color = (0, 255, 0)  # Green in BGR format
 
-                # Draw the bounding box in RED for objects within 1 meter
-                color = (0, 0, 255)  # Red in BGR format
-            else:
-                # Draw the bounding box in GREEN for objects outside 1 meter
-                color = (0, 255, 0)  # Green in BGR format
+                # Draw the bounding box and the distance label on the frame.
+                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+                cv2.putText(
+                    frame,
+                    f"{label}: {distance:.2f} m",
+                    (int(x1), int(y1) - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.9,
+                    color,
+                    2,
+                )
 
-            # Draw the bounding box and the distance label on the frame.
-            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
-            cv2.putText(
-                frame,
-                f"{label}: {distance:.2f} m",
-                (int(x1), int(y1) - 10),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.9,
-                color,
-                2,
-            )
+        # Remove objects that are no longer in the 1-meter range
+        warned_objects = warned_objects.intersection(current_frame_objects)
 
-    # Remove objects that are no longer in the 1-meter range
-    warned_objects = warned_objects.intersection(current_frame_objects)
+        # Display the frame
+        cv2.imshow("Distance Detection", frame)
 
-    # Display the frame
-    cv2.imshow("Distance Detection", frame)
+        # Check for key press
+        key = cv2.waitKey(1) & 0xFF
 
-    # Check for key press
-    key = cv2.waitKey(1) & 0xFF
+        # Save the current frame as "captured.png" if "P" is pressed
+        if key == ord("p") or key == ord("P"):
+            cv2.imwrite("captured.png", frame)
+            print("Image saved as captured.png")
 
-    # Save the current frame as "captured.png" if "P" is pressed
-    if key == ord("p") or key == ord("P"):
-        cv2.imwrite("captured.png", frame)
-        print("Image saved as captured.png")
+        # Exit on 'q' key press
+        if key == ord("q"):
+            break
 
-    # Exit on 'q' key press
-    if key == ord("q"):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+    cap.release()
+    cv2.destroyAllWindows()

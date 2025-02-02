@@ -7,7 +7,7 @@ import pyttsx3
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-def lens():
+def buyer_mode():
     def get_essential_info(image_path, rate=120):
         """Gets essential info (name, price, availability) in a few words."""
 
@@ -53,4 +53,3 @@ def lens():
         else:
             print(f"Error: Image not found at {image_path}")
             
-lens()

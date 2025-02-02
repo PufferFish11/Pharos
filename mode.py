@@ -1,6 +1,7 @@
 import speech_recognition as sr
 import pyttsx3
 
+
 # Initialize offline TTS engine
 tts_engine = pyttsx3.init()
 
@@ -17,6 +18,8 @@ def text_to_speech(text):
     tts_engine.say(text)
     tts_engine.runAndWait()
 
+
+
 def record_voice():
     """ Records voice and converts it to text. """
     recognizer = sr.Recognizer()
@@ -24,7 +27,7 @@ def record_voice():
     with mic as source:
         try:
             print("🎤 Speak now...")
-            audio = recognizer.listen(source)  # Allow longer input
+            audio = recognizer.listen(source, phrase_time_limit=5)  # Allow longer input
         except sr.WaitTimeoutError:
             print("⏳ No speech detected. Please try again.")
             return None
@@ -39,14 +42,17 @@ def record_voice():
         return None
   
 
+
 def list_audio_modes():
     """ List available modes using TTS. """
-    mode_list = "Available audio modes: music, jarvis, detection, Buyer. Please say a number or word."
+    mode_list = "Available audio modes: music, jarvis, detection, Buyer."
     text_to_speech(mode_list)
+
+
 
 def confirm_choice(choice):
     """ Asks the user to confirm their selection. """
-    text_to_speech(f"You selected Mode {choice}. Is that correct? Please say Yes or No.")
+    text_to_speech(f"You selected Mode {choice}. Is that correct?")
     
     while True:
         confirmation = record_voice()
@@ -59,10 +65,14 @@ def confirm_choice(choice):
         else:
             text_to_speech("I didn't understand. Please say Yes or No.")
 
+
+
 def contains_valid_mode(transcription):
     """ Checks if the transcribed text contains 'one', 'two', or 'three'. """
     valid_keywords = list(AUDIO_MODES.keys())
     return any(word in transcription for word in valid_keywords)
+
+
 
 def select_audio_mode():
     """ Handles the process of selecting an audio mode via voice input. """
@@ -79,11 +89,18 @@ def select_audio_mode():
                 if key in mode_selected:
                     if confirm_choice(key):
                         return key
+                    
         else:
             text_to_speech("Invalid selection. Please try again.")
             continue
 
+
+
 # Run the voice-based UI
 if __name__ == "__main__":
+
     selected_mode = select_audio_mode()
+
+
+    
     print(f"🎧 Final Selected Mode: {selected_mode}")
