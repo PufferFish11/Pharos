@@ -1,9 +1,13 @@
 import openai
-import speech_recognition as sr
-import pyttsx3
-from PIL import Image
-import pytesseract
+import base64
 import os
+from dotenv import load_dotenv
+import pyttsx3
+import speech_recognition as sr
+from PIL import Image
+import io
+
+print("\n\nI am a dedicated assistant for visually impaired users.")
 
 def recognize_speech_from_mic():
     recognizer = sr.Recognizer()
@@ -11,7 +15,7 @@ def recognize_speech_from_mic():
         print("Listening...")
         recognizer.adjust_for_ambient_noise(source)
         audio = recognizer.listen(source)
-    
+
     try:
         print("Recognizing...")
         text = recognizer.recognize_google(audio)
@@ -24,53 +28,97 @@ def recognize_speech_from_mic():
         print("Could not request results, check your internet connection.")
         return None
 
-def extract_text_from_image():
-    image_path = input("Enter the image file path (or press Enter to skip): ").strip()
-    if not image_path:
-        return ""
-    
-    if not os.path.exists(image_path):
-        print("Invalid file path. Skipping image processing.")
-        return ""
-    
-    try:
-        image = Image.open(image_path)
-        text = pytesseract.image_to_string(image)
-        print("Extracted text from image:", text)
-        return text
-    except Exception as e:
-        print("Error processing image:", str(e))
-        return ""
 
-def get_openai_response(prompt, api_key):
+def get_openai_response(prompt, api_key, encoded_image=None):
     openai.api_key = api_key
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response["choices"][0]["message"]["content"]
+    messages = [{"role": "user", "content": [{"type": "text", "text": prompt}]}]
+
+    if encoded_image:
+        messages[0]["content"].append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{encoded_image}"}})
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",  # Or another suitable model
+            messages=messages,
+            max_tokens=50  # Reduced max_tokens for shorter responses
+        )
+        # Extract and strip whitespace, limit to one line
+        response_text = response["choices"][0]["message"]["content"].strip()
+        return response_text.splitlines()[0] if response_text else "" # Get the first line only
+    except openai.error.OpenAIError as e:
+        print(f"OpenAI API Error: {e}")
+        return "Error communicating with OpenAI API."
+    except Exception as e:
+        print(f"An unexpected error occurred with OpenAI: {e}")
+        return "An unexpected error occurred with OpenAI."
+
+
+def encode_image(image_path):
+    try:
+        img = Image.open(image_path)
+        img.thumbnail((512, 512))  # Example: Resize to max 512x512 pixels (adjust as needed)
+
+        # Use BytesIO to store the resized image in memory
+        buffered = io.BytesIO()
+        img.save(buffered, format="JPEG", quality=80) # Save resized image to memory
+        img_str = base64.b64encode(buffered.getvalue()).decode() # Encode from memory
+
+        return img_str
+    except Exception as e:
+        print(f"Error encoding image: {e}")
+        return None
+    
 
 def text_to_speech(text):
     engine = pyttsx3.init()
     engine.say(text)
     engine.runAndWait()
 
+
 def main():
-    api_key = ""
-    
-    image_text = extract_text_from_image()
-    
+    load_dotenv()
+
+    openai.api_key = os.getenv("OPENAI_API_KEY")
+
+    if not openai.api_key:
+        print("Error: OPENAI_API_KEY environment variable not set.")
+        return
+
+    api_key = openai.api_key
+
+    image_path = "/Users/saifshaikh/Desktop/MAIS Code/Pharos/reff.jpg".strip()
+    encoded_image = None
+
+    if image_path:
+        if not os.path.exists(image_path):
+            print(f"Error: File not found at '{image_path}'.")
+            return
+        encoded_image = encode_image(image_path)
+        if not encoded_image:
+            return
+
     while True:
         user_input = recognize_speech_from_mic()
-        
+
         if user_input:
-            if "quit" in user_input:
+            if user_input.lower() in ("bye", "quit", "goodbye"):  # Check for exit phrases
                 print("Exiting program...")
-                break
-            combined_input = image_text + " " + user_input if image_text else user_input
-            response = get_openai_response(combined_input, api_key)
-            print("AI Response:", response)
-            text_to_speech(response)
+                break  # Exit the loop
+
+            prompt = user_input.strip()
+
+            if prompt:
+                response = get_openai_response(prompt, api_key, encoded_image)
+                print("VisHelp response:", response)
+                text_to_speech(response)
+            else:
+                print("No input provided (speech).")
+        elif user_input is None: # Handle the case where speech recognition fails
+            print("Could not understand audio. Please try again.")
+            continue # Go to the next iteration of the loop
+        else:
+          print("No Input Provided")
+
 
 if __name__ == "__main__":
     main()
